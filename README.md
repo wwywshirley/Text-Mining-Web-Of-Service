@@ -1,20 +1,23 @@
 # Web-Of-Service
 Spark &amp; AWS
 
+The dataset contains 46,986 documents, each document has 7 attributes:Y1, Y2, Y, Domain, area, keywords, Abstract.<br/>
+Our target is to classify the domain of the paper into one of seven parent labels: Medical, CS, Civil, Biochemistry, ECE, Psychology and MAE.<br/>
 
+Tools: AWS, Zepplin<br/>
+Language: Spark
+
+## Data Pre-processing
 
 ```
 %pyspark
 df = spark.read.option("inferSchema", "true")\
 .option("header","true")\
 .csv('s3://budt758b-xxr63369/Project/Data.csv')
-```
-
-```
-%pyspark
 df.show()
 ```
-
+![](DBimages/1.jpg)
+Deleting Spaces in ‘Domain’ , ‘area’ and ‘keywords’.
 ```
 %pyspark
 from pyspark.sql.functions import *
@@ -26,7 +29,8 @@ df = df.withColumn('area', trim(df.area))
 df = df.withColumn('keywords', trim(df.keywords))
 df.show()
 ```
-
+![](DBimages/2.jpg)
+Capitalize 'Domain' and lowercase all other columns.
 ```
 %pyspark
 from pyspark.sql import functions as F
@@ -39,55 +43,42 @@ for col in lowercolumns:
     
 df.show()
 ```
+![](DBimages/3.jpg)
 
+## EDA
+### Select domain, show the category(Y1) of each Domain
 ```
 %pyspark
 df1 = df.select(df['Domain'],df['area'],df['keywords'])
-df1.show()
-```
-
-```
-%pyspark
-#Select domain, show the category(Y1) of each Domain
 df.select(df["Domain"],df["Y1"]).distinct().show()
 ```
-
+![](DBimages/4.jpg)
+### Count and find the largest domain 
 ```
 %pyspark
 from pyspark.sql.functions import desc
 df_domain = (df1.groupBy('Domain').count())
 df_domain.sort(desc("count")).show()
 ```
+![](DBimages/5.jpg)
 
 ```
 %pyspark
 print df_domain.columns
 df_domain.registerTempTable('domain')
 print sqlContext.read.table('domain').dtypes
-```
 
-```
 %sql
 SELECT Domain, count FROM domain
 ORDER BY count DESC
 ```
-
-```
-%pyspark
-
-df2 = (df1
-        .filter(df1['Domain'] == 'MEDICAL')
-        .select(df1['area'],df1['keywords']))
-df2.limit(5).show()
-```
-
+![](DBimages/6.jpg)
+### Count and find the largest area in Medical 
 ```
 %pyspark
 df_area = (df2.groupBy('area').count())
 df_area.sort(desc("count")).limit(5).show()
-```
 
-```
 %pyspark
 df_area.registerTempTable('area')
 %sql
@@ -95,16 +86,16 @@ SELECT area, count FROM area
 WHERE count>330
 ORDER BY count DESC
 ```
+![](DBimages/7.jpg)
 
+### Count keywords in Fungal Infection
 ```
 %pyspark
 df3 = (df2
         .filter(df2['area'] == 'fungal infection')
         .select(df2['keywords']))
 df3.limit(5).show()
-```
 
-```
 %pyspark
 from pyspark.sql.functions import col, explode, split
 
@@ -112,29 +103,25 @@ df4 = df3.withColumn(
     "keywords", 
     explode(split(col('keywords'), "; "))
 )
-```
-
-```
+ 
 %pyspark
 df_keywords = (df4.groupBy('keywords').count())
 df_keywords.sort(desc("count")).limit(5).show()
-```
-
-```
+ 
 %pyspark
 df_keywords.registerTempTable('keywords')
 %sql
 SELECT keywords, count FROM keywords
 ORDER BY count DESC
-LIMIT 10
+LIMIT 5
 ```
+![](DBimages/8.jpg)
 
-```
-%pyspark
-data = df.select(df['Domain'],df['Abstract'])
-data.show()
-```
-
+## Data Ingestion and Extraction
+### Model Pipline
+1.regexTokenizer: Tokenization (with Regular Expression)<br/>
+2.stopwordsRemover: Remove Stop Words<br/>
+3.countVectors: Count vectors (“document-term vectors”)<br/>
 ```
 %pyspark
 from pyspark.ml.feature import RegexTokenizer, StopWordsRemover, CountVectorizer
@@ -145,6 +132,8 @@ add_stopwords = ['background','objective','aim','introduction','purpose','ration
 stopwordsRemover = StopWordsRemover(inputCol="words", outputCol="filtered").setStopWords(add_stopwords)
 countVectors = CountVectorizer(inputCol="filtered", outputCol="features", vocabSize=10000, minDF=5)
 ```
+
+### StringIndexer
 
 ```
 %pyspark
@@ -157,21 +146,19 @@ pipelineFit = pipeline.fit(data)
 dataset = pipelineFit.transform(data)
 dataset.show(5)
 ```
+![](DBimages/9.jpg)
 
-```
-%pyspark
-from pyspark.sql.functions import col, countDistinct
-
-dataset.agg(*(countDistinct(col(c)).alias(c) for c in dataset.columns)).show()
-```
-
+### Partition Training & Test sets
 ```
 %pyspark
 (trainingData, testData) = dataset.randomSplit([0.7, 0.3], seed = 100)
 print("Training Dataset Count: " + str(trainingData.count()))
 print("Test Dataset Count: " + str(testData.count()))
 ```
-
+Training Dataset Count: 33009<\br>
+Test Dataset Count: 13986
+### Model Training and Evaluation
+#### Logistic Regression using Count Vector Features
 ```
 %pyspark
 lr = LogisticRegression(maxIter=20, regParam=0.3, elasticNetParam=0)
@@ -182,14 +169,15 @@ predictions.filter(predictions['prediction'] == 0) \
     .orderBy("probability", ascending=False) \
     .show(n = 10, truncate = 30)
 ```
-
+![](DBimages/10.jpg)
 ```
 %pyspark
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 evaluator = MulticlassClassificationEvaluator(predictionCol="prediction")
 evaluator.evaluate(predictions)
 ```
-
+0.87
+#### Logistic Regression using TF-IDF Features
 ```
 %pyspark
 from pyspark.ml.feature import HashingTF, IDF
@@ -207,13 +195,15 @@ predictions.filter(predictions['prediction'] == 0) \
     .orderBy("probability", ascending=False) \
     .show(n = 10, truncate = 30)
 ```
-
+![](DBimages/11.jpg)
 ```
 %pyspark
 evaluator = MulticlassClassificationEvaluator(predictionCol="prediction")
 evaluator.evaluate(predictions)
 ```
+0.78
 
+#### Cross-Validation
 ```
 %pyspark
 pipeline = Pipeline(stages=[regexTokenizer, stopwordsRemover, countVectors, label_stringIdx])
@@ -241,7 +231,8 @@ predictions = cvModel.transform(testData)
 evaluator = MulticlassClassificationEvaluator(predictionCol="prediction")
 evaluator.evaluate(predictions)
 ```
-
+0.81
+#### Naive Bayes
 ```
 %pyspark
 from pyspark.ml.classification import NaiveBayes
@@ -253,43 +244,21 @@ predictions.filter(predictions['prediction'] == 0) \
     .orderBy("probability", ascending=False) \
     .show(n = 10, truncate = 30)
 ```
-
+![](DBimages/12.jpg)
 ```
 %pyspark
 evaluator = MulticlassClassificationEvaluator(predictionCol="prediction")
 evaluator.evaluate(predictions)
 ```
-
+0.73
+#### Random Forest
 ```
 %pyspark
 from pyspark.ml.classification import RandomForestClassifier
 rf = RandomForestClassifier(labelCol="label", \
                             featuresCol="features", \
-                            numTrees = 1000, \
-                            maxDepth = 10, \
-                            maxBins = 64)
-# Train model with Training Data
-rfModel = rf.fit(trainingData)
-predictions = rfModel.transform(testData)
-predictions.filter(predictions['prediction'] == 0) \
-    .select("Abstract","Domain","probability","label","prediction") \
-    .orderBy("probability", ascending=False) \
-    .show(n = 10, truncate = 30)
-```
-
-```
-%pyspark
-evaluator = MulticlassClassificationEvaluator(predictionCol="prediction")
-evaluator.evaluate(predictions)
-```
-
-```
-%pyspark
-from pyspark.ml.classification import RandomForestClassifier
-rf = RandomForestClassifier(labelCol="label", \
-                            featuresCol="features", \
-                            numTrees = 1000, \
-                            maxDepth = 20, \
+                            numTrees = 2000, \
+                            maxDepth = 5, \
                             maxBins = 128)
 # Train model with Training Data
 rfModel = rf.fit(trainingData)
@@ -299,10 +268,10 @@ predictions.filter(predictions['prediction'] == 0) \
     .orderBy("probability", ascending=False) \
     .show(n = 10, truncate = 30)
 ```
-
+![](DBimages/14.jpg)
 ```
 %pyspark
 evaluator = MulticlassClassificationEvaluator(predictionCol="prediction")
 evaluator.evaluate(predictions)
 ```
-
+0.71
