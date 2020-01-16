@@ -16,7 +16,7 @@ df = spark.read.option("inferSchema", "true")\
 .csv('s3://budt758b-xxr63369/Project/Data.csv')
 df.show()
 ```
-![](DBimages/1.jpg)
+![](BDImages/1.PNG)
 Deleting Spaces in ‘Domain’ , ‘area’ and ‘keywords’.
 ```
 %pyspark
@@ -29,7 +29,7 @@ df = df.withColumn('area', trim(df.area))
 df = df.withColumn('keywords', trim(df.keywords))
 df.show()
 ```
-![](DBimages/2.jpg)
+![](BDImages/2.PNG)
 Capitalize 'Domain' and lowercase all other columns.
 ```
 %pyspark
@@ -43,7 +43,7 @@ for col in lowercolumns:
     
 df.show()
 ```
-![](DBimages/3.jpg)
+![](BDImages/3.PNG)
 
 ## EDA
 ### Select domain, show the category(Y1) of each Domain
@@ -52,7 +52,7 @@ df.show()
 df1 = df.select(df['Domain'],df['area'],df['keywords'])
 df.select(df["Domain"],df["Y1"]).distinct().show()
 ```
-![](DBimages/4.jpg)
+![](BDImages/4.PNG)
 ### Count and find the largest domain 
 ```
 %pyspark
@@ -60,7 +60,7 @@ from pyspark.sql.functions import desc
 df_domain = (df1.groupBy('Domain').count())
 df_domain.sort(desc("count")).show()
 ```
-![](DBimages/5.jpg)
+![](BDImages/5.PNG)
 
 ```
 %pyspark
@@ -72,7 +72,7 @@ print sqlContext.read.table('domain').dtypes
 SELECT Domain, count FROM domain
 ORDER BY count DESC
 ```
-![](DBimages/6.jpg)
+![](BDImages/6.PNG)
 ### Count and find the largest area in Medical 
 ```
 %pyspark
@@ -86,7 +86,7 @@ SELECT area, count FROM area
 WHERE count>330
 ORDER BY count DESC
 ```
-![](DBimages/7.jpg)
+![](BDImages/7.PNG)
 
 ### Count keywords in Fungal Infection
 ```
@@ -115,7 +115,7 @@ SELECT keywords, count FROM keywords
 ORDER BY count DESC
 LIMIT 5
 ```
-![](DBimages/8.jpg)
+![](BDImages/8.PNG)
 
 ## Data Ingestion and Extraction
 ### Model Pipline
@@ -146,7 +146,7 @@ pipelineFit = pipeline.fit(data)
 dataset = pipelineFit.transform(data)
 dataset.show(5)
 ```
-![](DBimages/9.jpg)
+![](BDImages/9.PNG)
 
 ### Partition Training & Test sets
 ```
@@ -169,7 +169,7 @@ predictions.filter(predictions['prediction'] == 0) \
     .orderBy("probability", ascending=False) \
     .show(n = 10, truncate = 30)
 ```
-![](DBimages/10.jpg)
+![](BDImages/10.PNG)
 ```
 %pyspark
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
@@ -195,7 +195,7 @@ predictions.filter(predictions['prediction'] == 0) \
     .orderBy("probability", ascending=False) \
     .show(n = 10, truncate = 30)
 ```
-![](DBimages/11.jpg)
+![](BDImages/11.PNG)
 ```
 %pyspark
 evaluator = MulticlassClassificationEvaluator(predictionCol="prediction")
@@ -244,7 +244,7 @@ predictions.filter(predictions['prediction'] == 0) \
     .orderBy("probability", ascending=False) \
     .show(n = 10, truncate = 30)
 ```
-![](DBimages/12.jpg)
+![](BDImages/12.PNG)
 ```
 %pyspark
 evaluator = MulticlassClassificationEvaluator(predictionCol="prediction")
@@ -268,7 +268,7 @@ predictions.filter(predictions['prediction'] == 0) \
     .orderBy("probability", ascending=False) \
     .show(n = 10, truncate = 30)
 ```
-![](DBimages/14.jpg)
+![](BDImages/13.PNG)
 ```
 %pyspark
 evaluator = MulticlassClassificationEvaluator(predictionCol="prediction")
