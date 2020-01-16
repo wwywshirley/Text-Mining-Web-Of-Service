@@ -72,7 +72,7 @@ print sqlContext.read.table('domain').dtypes
 SELECT Domain, count FROM domain
 ORDER BY count DESC
 ```
-![](BDImages/6.PNG)
+![](BDImages/6.png)
 ### Count and find the largest area in Medical 
 ```
 %pyspark
@@ -86,7 +86,7 @@ SELECT area, count FROM area
 WHERE count>330
 ORDER BY count DESC
 ```
-![](BDImages/7.PNG)
+![](BDImages/7.png)
 
 ### Count keywords in Fungal Infection
 ```
