@@ -134,7 +134,7 @@ countVectors = CountVectorizer(inputCol="filtered", outputCol="features", vocabS
 ```
 
 ### StringIndexer
-
+StringIndexer encodes a string column of labels to a column of label indices. The most frequent label(Medical) will be indexed as 0.
 ```
 %pyspark
 from pyspark.ml import Pipeline
@@ -159,6 +159,7 @@ Training Dataset Count: 33009<\br>
 Test Dataset Count: 13986
 ### Model Training and Evaluation
 #### Logistic Regression using Count Vector Features
+Count Vector is a matrix notation of the dataset in which every row represents a document from the corpus, every column represents a term from the corpus, and every cell represents the frequency count of a particular term in a particular document.
 ```
 %pyspark
 lr = LogisticRegression(maxIter=20, regParam=0.3, elasticNetParam=0)
@@ -178,6 +179,10 @@ evaluator.evaluate(predictions)
 ```
 0.87
 #### Logistic Regression using TF-IDF Features
+TF-IDF technique is a popular approach in counting the number of times each word appears in a document.<\br>
+Term Frequency (TF) = (Number of times term t appears in a document)/(Number of terms in the document)<\br>
+Inverse Document Frequency (IDF) = log(N/n). The IDF of a rare word is high, whereas the IDF of a frequent word is likely to be low.<\br> 
+The feature shows word that are more important from the context of the entire corpus.
 ```
 %pyspark
 from pyspark.ml.feature import HashingTF, IDF
