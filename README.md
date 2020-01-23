@@ -1,4 +1,4 @@
-# Web-Of-Service
+# Text Mining: Web-Of-Service
 Spark &amp; AWS
 
 The dataset contains 46,986 documents, each document has 7 attributes:Y1, Y2, Y, Domain, area, keywords, Abstract.<br/>
@@ -45,7 +45,7 @@ df.show()
 ```
 ![](BDImages/3.PNG)
 
-## EDA
+## Exploratory Data Analysis
 ### Select domain, show the category(Y1) of each Domain
 ```
 %pyspark
@@ -118,7 +118,7 @@ LIMIT 5
 ![](BDImages/8.PNG)
 
 ## Data Ingestion and Extraction
-### Model Pipline
+### Build Model Pipline
 1.regexTokenizer: Tokenization (with Regular Expression)<br/>
 2.stopwordsRemover: Remove Stop Words<br/>
 3.countVectors: Count vectors (“document-term vectors”)<br/>
@@ -280,3 +280,5 @@ evaluator = MulticlassClassificationEvaluator(predictionCol="prediction")
 evaluator.evaluate(predictions)
 ```
 0.71
+
+The results shows that logistic regression has the highest accuracy while random forest model has the lowest. Random forest is the most complex model and should have a better result. This may due to a limited exploration on random forest model and could have achieved better results if the hyperparameters are better selected. Naive Bayes is a simple and fast model to perform.
